@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="CHESS-ENGINE\logo.png" alt=" " width="22%">
+  <img src="logo.png" alt=" " width="22%">
 </div>
 
 # Hawk-Eye
