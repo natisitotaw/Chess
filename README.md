@@ -17,10 +17,8 @@ CHESS-ENGINE is a chess engine tranined using previous chess games using [this ]
 ## Video Demo
 Below is a video demo of the application running.
 
-<video width="80%" controls>
-  <source src="https://github.com/natisitotaw/Chess-Engine/raw/main/sample_game.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+[![Watch the video](https://raw.githubusercontent.com/natisitotaw/Chess-Engine/blob/main/assets/thumbn.png)](https://raw.githubusercontent.com/natisitotaw/Chess-Engine/blob/main/assets/sample_game.mp4)
+
 
 ## License
 
