@@ -6,7 +6,7 @@
 
 [![License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/natisitotaw/Hawk-Eye-/blob/main/LICENSE)
 
-CHESS-ENGINE is a chess engine tranined using previous chess games using [this ](https://database.lichess.org/) datasets.
+CHESS-ENGINE is a chess engine tranined using previous chess games using [this ](https://database.lichess.org/) dataset.
 
 
 
