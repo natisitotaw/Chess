@@ -15,7 +15,7 @@ CHESS-ENGINE is a chess engine tranined using previous chess games using [this ]
 - Python (`pytorch`, `chess`, `numpy`)
 
 ## Video Demo
-Below is a video demo of the application running the white peice is the model.
+Below is a video demo of the application running the white peice is the model
 
 https://github.com/user-attachments/assets/22552bc4-ecf4-4f92-95a0-d60fd2ea9445
 
