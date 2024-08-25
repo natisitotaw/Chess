@@ -2,7 +2,7 @@
   <img src="logo.png" alt=" " width="22%">
 </div>
 
-# Hawk-Eye
+# Chess
 
 [![License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/natisitotaw/Hawk-Eye-/blob/main/LICENSE)
 
