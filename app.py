@@ -11,14 +11,20 @@ import pickle
 
 class ChessModel(nn.Module):
     def __init__(self, num_classes):
+        """
+        Initialize the ChessModel with a convolutional neural network architecture.
+
+        Parameters:
+        - num_classes (int): Number of output classes for classification.
+        """
         super(ChessModel, self).__init__()
-        # conv1 -> relu -> conv2 -> relu -> flatten -> fc1 -> relu -> fc2
-        self.conv1 = nn.Conv2d(13, 64, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(8 * 8 * 128, 256)
-        self.fc2 = nn.Linear(256, num_classes)
-        self.relu = nn.ReLU()
+        # Define the layers of the network
+        self.conv1 = nn.Conv2d(13, 64, kernel_size=3, padding=1)  # Convolutional layer 1
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1) # Convolutional layer 2
+        self.flatten = nn.Flatten()  # Flatten layer
+        self.fc1 = nn.Linear(8 * 8 * 128, 256)  # Fully connected layer 1
+        self.fc2 = nn.Linear(256, num_classes)  # Fully connected layer 2
+        self.relu = nn.ReLU()  # ReLU activation function
 
         # Initialize weights
         nn.init.kaiming_uniform_(self.conv1.weight, nonlinearity='relu')
@@ -27,31 +33,44 @@ class ChessModel(nn.Module):
         nn.init.xavier_uniform_(self.fc2.weight)
 
     def forward(self, x):
-        x = self.relu(self.conv1(x))
-        x = self.relu(self.conv2(x))
-        x = self.flatten(x)
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)  # Output raw logits
+        """
+        Define the forward pass of the network.
+
+        Parameters:
+        - x (torch.Tensor): Input tensor.
+
+        Returns:
+        - torch.Tensor: Output logits.
+        """
+        x = self.relu(self.conv1(x))  # Apply convolutional layer 1 and ReLU
+        x = self.relu(self.conv2(x))  # Apply convolutional layer 2 and ReLU
+        x = self.flatten(x)  # Flatten the tensor
+        x = self.relu(self.fc1(x))  # Apply fully connected layer 1 and ReLU
+        x = self.fc2(x)  # Apply fully connected layer 2 to get logits
         return x
     
 def board_to_matrix(board: Board):
-    # 8x8 is a size of the chess board.
-    # 12 = number of unique pieces.
-    # 13th board for legal moves (WHERE we can move)
-    # maybe 14th for squares FROM WHICH we can move? idk
-    matrix = np.zeros((13, 8, 8))
-    piece_map = board.piece_map()
+    """
+    Convert a chess board to a matrix representation.
 
-    # Populate first 12 8x8 boards (where pieces are)
+    Parameters:
+    - board (Board): Chess board object.
+
+    Returns:
+    - np.ndarray: 3D array representing the chess board.
+    """
+    matrix = np.zeros((13, 8, 8))  # Initialize matrix with 13 channels
+    piece_map = board.piece_map()  # Get piece map from the board
+
+    # Populate the matrix with pieces
     for square, piece in piece_map.items():
         row, col = divmod(square, 8)
         piece_type = piece.piece_type - 1
         piece_color = 0 if piece.color else 6
         matrix[piece_type + piece_color, row, col] = 1
 
-    # Populate the legal moves board (13th 8x8 board)
+    # Populate the legal moves board (13th channel)
     legal_moves = board.legal_moves
-    
     for move in legal_moves:
         to_square = move.to_square
         row_to, col_to = divmod(to_square, 8)
@@ -59,38 +78,61 @@ def board_to_matrix(board: Board):
 
     return matrix
 
-
 def create_input_for_nn(games):
+    """
+    Create input data for neural network from a list of games.
+
+    Parameters:
+    - games (list): List of chess games.
+
+    Returns:
+    - tuple: (X, y) where X is input features and y is target labels.
+    """
     X = []
     y = []
     for game in games:
         board = game.board()
         for move in game.mainline_moves():
-            X.append(board_to_matrix(board))
-            y.append(move.uci())
-            board.push(move)
+            X.append(board_to_matrix(board))  # Append board matrix to input features
+            y.append(move.uci())  # Append move in UCI format to labels
+            board.push(move)  # Apply the move to the board
     return np.array(X, dtype=np.float32), np.array(y)
 
-
 def encode_moves(moves):
+    """
+    Encode chess moves as integers.
+
+    Parameters:
+    - moves (list): List of chess moves in UCI format.
+
+    Returns:
+    - tuple: (encoded_moves, move_to_int) where encoded_moves are integer representations of moves and move_to_int is a mapping from move to integer.
+    """
     move_to_int = {move: idx for idx, move in enumerate(set(moves))}
     return np.array([move_to_int[move] for move in moves], dtype=np.float32), move_to_int
 
-
 def prepare_input(board: Board):
+    """
+    Prepare the input tensor for the neural network from a chess board.
+
+    Parameters:
+    - board (Board): Chess board object.
+
+    Returns:
+    - torch.Tensor: Tensor representation of the board.
+    """
     matrix = board_to_matrix(board)
-    X_tensor = torch.tensor(matrix, dtype=torch.float32).unsqueeze(0)
+    X_tensor = torch.tensor(matrix, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
     return X_tensor
 
-
-# Load the mapping
-
+# Load the move-to-integer mapping
 with open("move_to_int", "rb") as file:
     move_to_int = pickle.load(file)
 
-# Check for GPU
+# Determine if a GPU is available and set the device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
+
 
 # Load the model
 model = ChessModel(num_classes=len(move_to_int))
