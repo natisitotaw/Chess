@@ -125,51 +125,83 @@ def prepare_input(board: Board):
     X_tensor = torch.tensor(matrix, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
     return X_tensor
 
+
 # Load the move-to-integer mapping
+# The file "move_to_int" contains a dictionary that maps chess moves (in UCI format) to unique integers.
+# This mapping is crucial for converting moves into a numerical format that the model can understand.
 with open("move_to_int", "rb") as file:
     move_to_int = pickle.load(file)
 
 # Determine if a GPU is available and set the device
+# If a CUDA-enabled GPU is available, the model will be moved to the GPU for faster computation.
+# Otherwise, the model will run on the CPU.
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
 
-
 # Load the model
+# The ChessModel is a neural network designed to predict chess moves.
+# It is initialized with the number of output classes, which corresponds to the number of possible moves.
 model = ChessModel(num_classes=len(move_to_int))
 model_path = 'model.pth'
 
 try:
+    # Load the model's state dictionary from the file
+    # The state dictionary contains the learned parameters (weights and biases) of the model.
     state_dict = torch.load(model_path, map_location=torch.device('cpu'))
     model.load_state_dict(state_dict)
-    model.to('cpu')  # Ensure the model is on the CPU
-    model.eval()  # Set the model to evaluation mode
+    
+    # Ensure the model is on the CPU (required if the model was trained on a GPU but needs to run on a CPU)
+    model.to('cpu')
+    
+    # Set the model to evaluation mode
+    # This disables certain layers like dropout, which behave differently during training and evaluation.
+    model.eval()
     print("Model loaded successfully")
 except Exception as e:
+    # Handle any errors that occur during model loading
+    # This could be due to issues with the file path, incompatible state dicts, etc.
     print(f"Error loading model: {e}")
-model.to(device)
-model.eval()  # Set the model to evaluation mode (it may be reductant)
 
+# Move the model to the device (CPU or GPU) for prediction
+model.to(device)
+model.eval()  # Set the model to evaluation mode (this might be redundant, but ensures correct behavior)
+
+# Create the inverse mapping from integer to move
+# This dictionary allows us to convert the model's integer predictions back into UCI move strings.
 int_to_move = {v: k for k, v in move_to_int.items()}
-# Function to make predictions
+
+# Function to make predictions for a given chess board state
 def predict_move(board: Board):
+    # Prepare the input tensor from the chess board and move it to the device
+    # The function 'prepare_input' is assumed to convert the board state into a suitable tensor format.
     X_tensor = prepare_input(board).to(device)
     
     with torch.no_grad():
+        # Perform a forward pass through the model to obtain logits (raw model outputs)
         logits = model(X_tensor)
     
-    logits = logits.squeeze(0)  # Remove batch dimension
+    # Remove the batch dimension, assuming that the input tensor has a batch size of 1
+    logits = logits.squeeze(0)
     
-    probabilities = torch.softmax(logits, dim=0).cpu().numpy()  # Convert to probabilities
+    # Convert the logits to probabilities using the softmax function
+    probabilities = torch.softmax(logits, dim=0).cpu().numpy()
+    
+    # Get the list of legal moves for the current board position
     legal_moves = list(board.legal_moves)
+    
+    # Convert each legal move to UCI format (a standard string representation of moves in chess)
     legal_moves_uci = [move.uci() for move in legal_moves]
+    
+    # Sort the indices of the predicted probabilities in descending order
     sorted_indices = np.argsort(probabilities)[::-1]
+    
+    # Iterate through the sorted indices to find the best legal move
     for move_index in sorted_indices:
         move = int_to_move[move_index]
         if move in legal_moves_uci:
-            return move
-     
-    return None
-
+            return move  # Return the first legal move that matches a predicted move
+    
+    return None  # Return None if no legal move is found (should not happen if the model is trained well)
 
 class ChessGame:
     def __init__(self, root):
